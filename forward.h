@@ -22,8 +22,8 @@ public:
    void setValue(double v) {val_ = v;}
    void setDerivative(double d) {der_ = d;}
    
-   fFwd& operator=(const fFwd& fF) {val_ = fF.val_; der_ = fF.der_;}
-   fFwd& operator=(double d) {val_ = d; der_ = 0.0;}
+   fFwd& operator=(const fFwd& fF) {val_ = fF.val_; der_ = fF.der_; return *this;}
+   fFwd& operator=(double d) {val_ = d; der_ = 0.0; return *this;}
    
    // addition
    fFwd operator+(const fFwd& fF) const {return fFwd(val_ + fF.val_, der_ + fF.der_);}
