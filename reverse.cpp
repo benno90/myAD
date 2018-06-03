@@ -7,12 +7,16 @@
     
 #include "reverse.h"
 #include <assert.h>
+#include <cmath>
 // ---------------------------------------------- reverse AD
 
-namespace reverseAD
-{
 
-int addToTape(Node* n)
+// definition of the static members
+    Tape reverseAD::tape_ = Tape(reverseAD::TAPE_SIZE);
+    int reverseAD::index_ = 0;
+    bool reverseAD::recording_ = false;
+
+int reverseAD::addToTape(Node* n)
 {
     assert(index_ < TAPE_SIZE);
     tape_[index_] = n;
@@ -20,13 +24,13 @@ int addToTape(Node* n)
     return index_ - 1;
 }
 
-void initTape()
+void reverseAD::initTape()
 {
     index_ = 0;
     tape_.resize(TAPE_SIZE);
 }
     
-void resetTape()
+void reverseAD::resetTape()
 {
     for(int i = 0; i < index_; i++)
     {
@@ -35,13 +39,14 @@ void resetTape()
     index_ = 0;
 }
 
-void evaluateTape(const fRev& fR)
+void reverseAD::evaluateTape(const fRev& fR)
 {
     Node& start = *(globalTape()[fR.index()]);
     start.setDerivative(1.0);
+    evaluateTapeRecursively(start);
 }
 
-void evaluateTapeRecursively(Node& n)
+void reverseAD::evaluateTapeRecursively(Node& n)
 {
     int parent1 = n.getParentNode1();
     int parent2 = n.getParentNode2();
@@ -54,6 +59,9 @@ void evaluateTapeRecursively(Node& n)
         case Operation::multiplication:
             reverseMultiplication(n, parent1, parent2);
             break;
+        case Operation::division:
+            reverseDivision(n, parent1, parent2);
+            break;
         case Operation::assignment:
             reverseAssignment(n, parent1);
             assert(parent2 == -1);
@@ -63,6 +71,11 @@ void evaluateTapeRecursively(Node& n)
             assert(parent2 == -1);
             break;
         case Operation::none:
+            assert(parent1 == -1);
+            assert(parent2 == -1);
+            break;
+        case Operation::sin:
+            reverseSin(n, parent1);
             break;
         default:
             assert(false);
@@ -73,7 +86,7 @@ void evaluateTapeRecursively(Node& n)
         evaluateTapeRecursively((*globalTape()[parent2]));
 }
 
-void reverseAddition(Node& n, int parentIndex1, int parentIndex2)
+void reverseAD::reverseAddition(Node& n, int parentIndex1, int parentIndex2)
 {
     Node& parent1 = (*globalTape()[parentIndex1]);
     Node& parent2 = (*globalTape()[parentIndex2]);
@@ -81,7 +94,7 @@ void reverseAddition(Node& n, int parentIndex1, int parentIndex2)
     parent2.setDerivative(parent2.getDerivative() + n.getDerivative());
 }
 
-void reverseMultiplication(Node& n, int parentIndex1, int parentIndex2)
+void reverseAD::reverseMultiplication(Node& n, int parentIndex1, int parentIndex2)
 {
     Node& parent1 = (*globalTape()[parentIndex1]);
     Node& parent2 = (*globalTape()[parentIndex2]);
@@ -89,26 +102,44 @@ void reverseMultiplication(Node& n, int parentIndex1, int parentIndex2)
     parent2.setDerivative(parent2.getDerivative() + n.getDerivative() * parent1.getValue());
 }
 
-void reverseAssignment(Node& n, int parentIndex)
+void reverseAD::reverseDivision(Node& n, int parentIndex1, int parentIndex2)
+{
+    Node& parent1 = (*globalTape()[parentIndex1]);
+    Node& parent2 = (*globalTape()[parentIndex2]);
+    parent1.setDerivative(parent1.getDerivative() + n.getDerivative() / parent2.getValue());
+    parent2.setDerivative(parent2.getDerivative() - n.getDerivative() * parent1.getValue() / (parent2.getValue() * parent2.getValue()) );
+}
+
+void reverseAD::reverseAssignment(Node& n, int parentIndex)
 {
     Node& parent = (*globalTape()[parentIndex]);
     parent.setDerivative(n.getDerivative());
     n.setDerivative(0.0);
 }
 
-void reverseCopy(Node& n, int parentIndex)
+void reverseAD::reverseCopy(Node& n, int parentIndex)
 {
     Node& parent = (*globalTape()[parentIndex]);
     parent.setDerivative(parent.getDerivative() + n.getDerivative());
 }
 
-} // namespace reverseAD
+void reverseAD::reverseSin(Node& n, int parentIndex)
+{
+    Node& parent = (*globalTape()[parentIndex]);
+    parent.setDerivative(parent.getDerivative() + std::cos(parent.getValue())*n.getDerivative());
+}
 
 // --------------------------------------------- fRev
 
 fRev::fRev()
 {
     Node* n = new Node(0.0, 0.0, -1, -1, Operation::none);
+    index_ = reverseAD::addToTape(n);
+}
+
+fRev::fRev(double v)
+{
+    Node* n = new Node(v, 0.0, -1, -1, Operation::none);
     index_ = reverseAD::addToTape(n);
 }
 
@@ -155,6 +186,31 @@ fRev fRev::operator+(const fRev& fR) const
 {
     double v = value() + fR.value();
     Node* n = new Node(v, 0.0, this->index_, fR.index_, Operation::addition);
+    int index = reverseAD::addToTape(n);
+    return fRev(index);
+}
+
+fRev fRev::operator*(const fRev& fR) const
+{
+    double v = value() * fR.value();
+    Node* n = new Node(v, 0.0, this->index_, fR.index_, Operation::multiplication);
+    int index = reverseAD::addToTape(n);
+    return fRev(index);
+}
+
+fRev fRev::operator/(const fRev& fR) const
+{
+    double v = value() / fR.value();
+    Node* n = new Node(v, 0.0, this->index_, fR.index_, Operation::division);
+    int index = reverseAD::addToTape(n);
+    return fRev(index);
+}
+
+
+fRev sin(const fRev& fR)
+{
+    double v = std::sin(fR.value());
+    Node* n = new Node(v, 0.0, fR.index(), -1, Operation::sin);
     int index = reverseAD::addToTape(n);
     return fRev(index);
 }

@@ -17,32 +17,47 @@ using Tape = std::vector<Node*>;
 
 enum class Operation
 {
-    addition,
-    multiplication,
+    none,
     assignment,
     copy,
-    none,
+    addition,
+    multiplication,
+    division,
+    sin,
+    cos,
+    exp
 };
 
-namespace reverseAD
+class reverseAD
 {
+private:
+    // members
     static Tape tape_;
     static int index_;
     static bool recording_;
     static const int TAPE_SIZE = 100;
-    
-    int addToTape(Node* n);
-    void resetTape();
-    void initTape();
+public:
+    // functions
+    static int addToTape(Node* n);
+    static void resetTape();
+    static void initTape();
     static Tape& globalTape() {return tape_;}
     
-    void evaluateTape(const fRev& fR);
-    void evaluateTapeRecursively(Node& n);
+    static void evaluateTape(const fRev& fR);
+
+    
+    static int tapeSize() {return index_;}
+    
+private:
+    static void evaluateTapeRecursively(Node& n);
     
     // reverse methods
-    void reverseAddition(Node& n, int parentIndex);
-    void reverseAssignment(Node& n, int parentIndex);
-    void reverseCopy(Node& n, int parentIndex);
+    static void reverseAddition(Node& n, int parentIndex1, int parentIndex2);
+    static void reverseMultiplication(Node& n, int parent1, int parent2);
+    static void reverseDivision(Node& n, int parentIndex1, int parentIndex2);
+    static void reverseAssignment(Node& n, int parentIndex);
+    static void reverseCopy(Node& n, int parentIndex);
+    static void reverseSin(Node& n, int parentIndex);
     
 
 };
@@ -65,9 +80,15 @@ public:
     //fRev& operator=(double d);
     
     fRev operator+(const fRev& fR) const;
+    fRev operator*(const fRev& fR) const;
+    fRev operator/(const fRev& fR) const;
 private:
     int index_;
 };
+
+
+// external functions
+fRev sin(const fRev& fR);
 
 class Node
 {
