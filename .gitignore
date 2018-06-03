@@ -1,0 +1,45 @@
+
+# ---------- template for C++ projects ------------
+
+# Compiled Object files
+#*.slo
+#*.lo
+*.o
+#*.obj
+
+# Precompiled Headers
+#*.gch
+#*.pch
+
+# Compiled Dynamic libraries
+*.so
+#*.dylib
+#*.dll
+
+# Fortran module files
+#*.mod
+#*.smod
+
+# Compiled Static libraries
+#*.lai
+#*.la
+*.a
+#*.lib
+
+# Executables
+#*.exe
+*.out
+#*.appeause 7
+
+*.swp
+
+# ------------ C++ project ------------
+# build dir (.o files)
+build/*
+# executables
+bin/*
+
+
+# ---------- netbeans --------------
+nbproject/
+
