@@ -35,6 +35,11 @@ public:
    fFwd operator*(double d) const {return fFwd(val_ * d, der_ * d);}
    friend fFwd operator*(double d, const fFwd& fF) {return fFwd(fF.val_ * d, d * fF.der_);}
    
+   // division
+   fFwd operator/(const fFwd& fF) const {return fFwd(val_ / fF.val_, der_ / fF.val_  - fF.der_ * val_ / (fF.val_ * fF.val_));}
+   fFwd operator/(double d) const {return fFwd(val_ / d, der_ / d);}
+   friend fFwd operator/(double d, const fFwd& fF) {return fFwd(d / fF.val_, -d / (fF.val_ * fF.val_) * fF.der_);}
+   
    friend std::ostream& operator << (std::ostream& os, const fFwd& fF) {os << fF.value(); return os;}
 private:
    double val_;

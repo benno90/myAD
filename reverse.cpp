@@ -8,7 +8,9 @@
 #include "reverse.h"
 #include <assert.h>
 #include <cmath>
-// ---------------------------------------------- reverse AD
+
+
+// ----------------------------------------------------------------------------- reverse AD
 
 
 // definition of the static members
@@ -22,6 +24,12 @@ int reverseAD::addToTape(Node* n)
     tape_[index_] = n;
     index_++;
     return index_ - 1;
+}
+
+Node& reverseAD::getNode(int index)
+{
+    assert(index < index_);
+    return *(tape_[index]);
 }
 
 void reverseAD::initTape()
@@ -81,55 +89,57 @@ void reverseAD::evaluateTapeRecursively(Node& n)
             assert(false);
     }
     if(parent1 != -1)
-        evaluateTapeRecursively((*globalTape()[parent1]));
+        evaluateTapeRecursively(reverseAD::getNode(parent1));
     if(parent2 != -1)
-        evaluateTapeRecursively((*globalTape()[parent2]));
+        evaluateTapeRecursively(reverseAD::getNode(parent2));
 }
 
 void reverseAD::reverseAddition(Node& n, int parentIndex1, int parentIndex2)
 {
-    Node& parent1 = (*globalTape()[parentIndex1]);
-    Node& parent2 = (*globalTape()[parentIndex2]);
-    parent1.setDerivative(parent1.getDerivative() + n.getDerivative());
-    parent2.setDerivative(parent2.getDerivative() + n.getDerivative());
+    Node& parent1 = reverseAD::getNode(parentIndex1); 
+    Node& parent2 = reverseAD::getNode(parentIndex2);
+    parent1.incrementDerivative(n.getDerivative());
+    parent2.incrementDerivative(n.getDerivative());
 }
 
 void reverseAD::reverseMultiplication(Node& n, int parentIndex1, int parentIndex2)
 {
-    Node& parent1 = (*globalTape()[parentIndex1]);
-    Node& parent2 = (*globalTape()[parentIndex2]);
-    parent1.setDerivative(parent1.getDerivative() + n.getDerivative() * parent2.getValue());
-    parent2.setDerivative(parent2.getDerivative() + n.getDerivative() * parent1.getValue());
+    Node& parent1 = reverseAD::getNode(parentIndex1);
+    Node& parent2 = reverseAD::getNode(parentIndex2);
+    parent1.incrementDerivative(n.getDerivative() * parent2.getValue());
+    parent2.incrementDerivative(n.getDerivative() * parent1.getValue());
 }
 
 void reverseAD::reverseDivision(Node& n, int parentIndex1, int parentIndex2)
 {
-    Node& parent1 = (*globalTape()[parentIndex1]);
-    Node& parent2 = (*globalTape()[parentIndex2]);
-    parent1.setDerivative(parent1.getDerivative() + n.getDerivative() / parent2.getValue());
-    parent2.setDerivative(parent2.getDerivative() - n.getDerivative() * parent1.getValue() / (parent2.getValue() * parent2.getValue()) );
+    Node& parent1 = reverseAD::getNode(parentIndex1);
+    Node& parent2 = reverseAD::getNode(parentIndex2);
+    parent1.incrementDerivative(n.getDerivative() / parent2.getValue());
+    parent2.incrementDerivative(-n.getDerivative() * parent1.getValue() / (parent2.getValue() * parent2.getValue()));
 }
 
 void reverseAD::reverseAssignment(Node& n, int parentIndex)
 {
-    Node& parent = (*globalTape()[parentIndex]);
+    Node& parent = reverseAD::getNode(parentIndex);
     parent.setDerivative(n.getDerivative());
     n.setDerivative(0.0);
 }
 
 void reverseAD::reverseCopy(Node& n, int parentIndex)
 {
-    Node& parent = (*globalTape()[parentIndex]);
-    parent.setDerivative(parent.getDerivative() + n.getDerivative());
+    Node& parent = reverseAD::getNode(parentIndex);
+    parent.incrementDerivative(n.getDerivative());
 }
 
 void reverseAD::reverseSin(Node& n, int parentIndex)
 {
-    Node& parent = (*globalTape()[parentIndex]);
-    parent.setDerivative(parent.getDerivative() + std::cos(parent.getValue())*n.getDerivative());
+    Node& parent = reverseAD::getNode(parentIndex);
+    parent.incrementDerivative(std::cos(parent.getValue())*n.getDerivative());
 }
 
-// --------------------------------------------- fRev
+
+
+// ----------------------------------------------------------------------------- fRev
 
 fRev::fRev()
 {
@@ -215,7 +225,7 @@ fRev sin(const fRev& fR)
     return fRev(index);
 }
 
-// --------------------------------------------- Node
+// ----------------------------------------------------------------------------- Node
 
 Node::Node(double v, double d, int p1, int p2, Operation op)
 {
